@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -88,7 +89,7 @@ public class DBUtilSample {
 		//2.empno=50で検索し意図通りか確認
 		//3.新規に追加したデータの名前を修正(総務部→開発部)
 		//4.2.と同じように検索し確認
-		//5.新規に追加したデータを作成
+		//5.新規に追加したデータを削除
 	    try {
 			int newId = queryRunner.update(	conn, insertSQL, "50", "総務部", "東京");
 			assertThat(newId, is(1));
@@ -101,6 +102,34 @@ public class DBUtilSample {
 			assertThat(updDep.getDname(), is("開発部"));
 			int delNum = queryRunner.update(conn,deleteSQL,50);
 			assertThat(delNum, is(1));
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Test
+	public void InsertDatasAndDeleteThem() {
+		String insertSQL = "INSERT INTO department (deptno,dname,location) VALUES (?, ?, ?)";
+		String deleteSQL = "DELETE from department where deptno = ?";
+
+		//1.新規データを複数挿入
+		//2.empno=50,60で検索し意図通りか確認
+		//3.新規に追加したデータを削除
+	    try {
+	    	List<Object[]> params = new ArrayList<Object[]>();
+	        params.add(new Object[]{ "50", "総務部", "東京"});
+	        params.add(new Object[]{ "60", "開発部",  "鹿児島"});
+			queryRunner.batch(	conn, insertSQL, params.toArray(new Object[0][]));
+			Dep newDep = queryRunner.query(conn, "select * from department where deptno = ?", new BeanHandler<>(Dep.class),50);
+			assertThat(newDep.getDname(), is("総務部"));
+			assertThat(newDep.getLocation(), is("東京"));
+			newDep = queryRunner.query(conn, "select * from department where deptno = ?", new BeanHandler<>(Dep.class),60);
+			assertThat(newDep.getDname(), is("開発部"));
+			assertThat(newDep.getLocation(), is("鹿児島"));
+			params.clear();
+			params.add(new Object[]{ "50"});
+			params.add(new Object[]{ "60"});
+			queryRunner.batch(conn, deleteSQL, params.toArray(new Object[0][]));
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
